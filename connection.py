@@ -1,28 +1,28 @@
 import socket
 from state import State
 from connectPayload import ConnectPayload
+from controlPayload import ControlPayload
+from dataPayload import DataPayload
 from threading import Condition, Lock
 from command import Command
 from srpcdefs import SRPCDef
+from query import Query
 
 class Connection(object):
-    SEQNO_LIMIT = 1000000000;
-    SEQNO_START = 0;
-    MAX_LENGTH  = 65535;
     """docstring for Connection"""
-    def __init__(self, context, source, service):
+    def __init__(self, sock, source, service):
         super(Connection, self).__init__()
-        self.context = context
+        self.sock = sock
         self.source = source
         self.service = service
+        self.state = State.IDLE
         self.ticks         = 0
         self.ticksLeft     = 0
         self.ticksTilPing  = SRPCDef.TICKS_BETWEEN_PINGS
         self.pingsTilPurge = SRPCDef.PINGS_BEFORE_PURGE
         self.nattempts     = SRPCDef.ATTEMPTS
-        self.sock = socket.socket(socket.AF_INET, # Internet
-                                  socket.SOCK_DGRAM) # UDP
         self.data = ""
+        self.resp = ""
         self.seqNo = 0
         self.lastPayload = None
         self.lastFrag = 0
@@ -47,9 +47,9 @@ class Connection(object):
         self.cond.notifyAll()
         self.cond.release()
 
-    def waitForState(self, set):
+    def waitForState(self, stateSet):
         self.cond.acquire()
-        while (self.state not in set):
+        while (self.state not in stateSet):
             self.cond.wait()
         self.cond.release()
         # sleep on state
@@ -60,15 +60,15 @@ class Connection(object):
         self.lastPayload = payload
 
     def sendCommand(self, command):
-        control = ControlPayload(command, self.source.subport, seqNo, 1, 1)
+        control = ControlPayload(self.source.subport, self.seqNo, command, 1, 1)
         self.send(control)
 
     def retry(self):
         if self.state in State.RETRY_SET:
-            self.send(lastPayload)
+            self.send(self.lastPayload)
 
     def ping(self):
-        sendCommand(Command.PING)
+        self.sendCommand(Command.PING)
 
     def checkStatus(self):
         # Retry connections which have not responded in a timely fashion
@@ -77,10 +77,10 @@ class Connection(object):
             if self.ticksLeft <= 0:
                 self.nattempts -= 1
                 if self.nattempts <= 0:
-                    self.State = State.TIMEDOUT
+                    self.setState(State.TIMEDOUT)
                 else:
                     self.ticks *= 2
-                    self.ticksLeft = ticks
+                    self.ticksLeft = self.ticks
                     self.retry()
         else: #Periodically ping idle connections
             self.ticksTilPing -= 1
@@ -96,15 +96,15 @@ class Connection(object):
     def connect(self, serviceName):
         self.resetTicks()
         payload = ConnectPayload(subport=self.source.subport,
-                                 seqno=self.seqNo,
+                                 seqNo=self.seqNo,
                                  nfrags=1, fnum=1,
-                                 service=serviceName + '\0')
-        print payload.toString(), len(payload.pack())
+                                 serviceName=serviceName + '\0')
+        print payload.toString()
         self.send(payload)
         self.setState(State.CONNECT_SENT)
         self.waitForState((State.IDLE, State.TIMEDOUT))
 
-        if state == State.TIMEDOUT:
+        if self.state == State.TIMEDOUT:
             return False
         else:
             return True
@@ -113,47 +113,51 @@ class Connection(object):
         # Check connection is ready to send
         if self.state == State.IDLE:
             #Handle seqno wrap around and synch
-            if self.seqNo >= SEQNO_LIMIT:
-                self.seqNo = SEQNO_START
+            if self.seqNo >= SRPCDef.SEQNO_LIMIT:
+                self.seqNo = SRPCDef.SEQNO_START
                 self.send(Command.SEQNO)
                 self.setState(State.SEQNO_SENT)
                 self.waitForState((State.IDLE, State.TIMEDOUT))
                 if state == State.TIMEDOUT:
-                    return False
+                    return None
 
             self.seqNo += 1
 
             query = query + '\0'
             qlen = len(query)
-            if qlen > MAX_LENGTH:
-                return False
+            if qlen > SRPCDef.MAX_LENGTH:
+                return None
             # Calculate number of fragments and send
             fragmentCount = (qlen - 1) / SRPCDef.FRAGMENT_SIZE + 1
+            fragment = 1
             for fragment in range(1, fragmentCount):
                 index = SRPCDef.FRAGMENT_SIZE * (fragment - 1)
-                payload = DataPayload(Command.FRAGMENT, self.source.subport,
-                                      self.seqNo, fragment, fragmentCount,
-                                      qlen,
-                                      query[index:index + SRPCDef.FRAGMENT_SIZE])
+                payload = DataPayload(subport=self.source.subport, seqNo=self.seqNo,
+                                      command=Command.FRAGMENT,
+                                      fnum=fragment, nfrags=fragmentCount,
+                                      data_len=qlen,
+                                      data=query[index:index + SRPCDef.FRAGMENT_SIZE])
                 lastFrag = fragment
                 self.send(payload)
 
                 self.setState(State.FRAGMENT_SENT)
                 self.waitForState((State.TIMEDOUT, State.FACK_RECEIVED))
                 if self.state == State.TIMEDOUT:
-                    return False
+                    return None
             #Send last fragment
             index = SRPCDef.FRAGMENT_SIZE * (fragment - 1)
-            payload = DataPayload(Command.QUERY, self.source.subport, self.seqNo,
-                                 fragment, fragmentCount, qlen, query[index:])
+            payload = DataPayload(subport=self.source.subport, seqNo=self.seqNo,
+                                  command=Command.QUERY,
+                                  fnum=fragment, nfrags=fragmentCount,
+                                  data_len=qlen, data=query[index:])
             self.send(payload)
             self.resetTicks()
             self.setState(State.QUERY_SENT)
             self.waitForState((State.TIMEDOUT, State.IDLE))
-            return self.response
+            return self.resp
 
         else:
-            return False
+            return None
 
 
     def response(self, query):
@@ -166,10 +170,11 @@ class Connection(object):
             fragmentCount = (qlen - 1) / SRPCDef.FRAGMENT_SIZE + 1
             for fragment in range(1, fragmentCount):
                 index = SRPCDef.FRAGMENT_SIZE * (fragment - 1)
-                payload = DataPayload(Command.FRAGMENT, self.source.subport,
-                                      self.seqNo, fragment, fragmentCount,
-                                      qlen,
-                                      query[index:index + SRPCDef.FRAGMENT_SIZE])
+                payload = DataPayload(subport=self.source.subport, seqNo=self.seqNo,
+                                      command=Command.FRAGMENT,
+                                      fnum=fragment, nfrags=fragmentCount,
+                                      data_len=qlen,
+                                      data=query[index:index + SRPCDef.FRAGMENT_SIZE])
                 lastFrag = fragment
                 self.send(payload)
 
@@ -179,15 +184,15 @@ class Connection(object):
                     return False
             #Send last fragment
             index = SRPCDef.FRAGMENT_SIZE * (fragment - 1)
-            payload = DataPayload(Command.RESPONSE, self.source.subport, self.seqNo,
-                                 fragment, fragmentCount, qlen, query[index:])
-            #Send last fragment
-            index = SRPCDef.FRAGMENT_SIZE * (fragment - 1)
-            payload = DataPayload(Command.QUERY, self.source.subport, self.seqNo,
-                                 fragment, fragmentCount, qlen, query[index:])
+            payload = DataPayload(subport=self.source.subport, seqNo=self.seqNo,
+                                  command=Command.RESPONSE,
+                                  fnum=fragment, nfrags=fragmentCount,
+                                  data_len=qlen, data=query[index:])
+
             self.send(payload)
             self.resetTicks()
             self.setState(State.RESPONSE_SENT)
+            return True
         else:
             return False
 
@@ -212,19 +217,22 @@ class Connection(object):
             self.setState(State.IDLE)
 
     def RESPONSEReceived(self, payload):
+        payload = DataPayload(buffer=payload.buffer)
         if payload.seqNo != self.seqNo:
             return
         if self.state in (State.QUERY_SENT, State.AWAITING_RESPONSE):
-            self.response = payload.data
+            self.resp = payload.data
         elif (payload.seqNo == self.seqNo and self.state == State.FACK_SENT and
               (payload.fragment - self.lastFrag) == 1 and
             payload.fragmentCount == payload.fragment):
-            self.response = self.data + payload.data
+            self.resp = self.data + payload.data
             data = ""
         else:
             return
         self.resetTicks()
-        self.send(Command.RACK, payload.fragment, payload.fragmentCount)
+        self.send(ControlPayload(self.source.subport, self.seqNo, Command.RACK,
+                                 payload.fragment, payload.fragmentCount))
+
         self.setState(State.IDLE)
 
     def QACKReceived(self, payload):
@@ -232,6 +240,7 @@ class Connection(object):
             self.setState(State.AWAITING_RESPONSE)
 
     def QUERYReceived(self, payload):
+        payload = DataPayload(buffer=payload.buffer)
         if (payload.seqNo - seqNo) == 1 and self.state in (State.IDLE,
                                                          State.RESPONSE_SENT):
             self.seqNo = payload.seqNo
@@ -245,7 +254,7 @@ class Connection(object):
 
         self.send(Command.QACK, payload.fragment, payload.fragmentCount)
         self.setState(State.QACK_SENT)
-        #service.add(query)
+        self.service.add(Query(self, query))
 
     def FACKReceived(self, payload):
         if (payload.seqNo == self.seqNo and self.state == State.FRAGMENT_SENT
@@ -296,39 +305,23 @@ class Connection(object):
         self.resetTicks()
 
     def PINGReceived(self, payload):
-        self.send(Command.PACK)
+        self.sendCommand(Command.PACK)
 
     def PACKReceived(self, payload):
         self.resetPings()
 
     #Switch-table dictionary for received commands
     # (requires all functions to take payload)
-    commands = {Command.CONNECT: CONNECTReceived,
-                Command.CACK: CACKReceived,
-                Command.DISCONNECT: DISCONNECTReceived,
-                Command.DACK: DACKReceived,
-                Command.FRAGMENT: FRAGMENTReceived,
-                Command.FACK: FACKReceived,
-                Command.QUERY: QUERYReceived,
-                Command.QACK: QACKReceived,
-                Command.RESPONSE: RESPONSEReceived,
-                Command.RACK: RACKReceived,
-                Command.PING: PINGReceived,
-                Command.PACK: PACKReceived,
-                Command.SEQNO: SEQNOReceived,
-                Command.SACK: SACKReceived,
-                }
-
     commandsList = (CONNECTReceived,
                 CACKReceived,
-                DISCONNECTReceived,
-                DACKReceived,
-                FRAGMENTReceived,
-                FACKReceived,
                 QUERYReceived,
                 QACKReceived,
                 RESPONSEReceived,
                 RACKReceived,
+                DISCONNECTReceived,
+                DACKReceived,
+                FRAGMENTReceived,
+                FACKReceived,
                 PINGReceived,
                 PACKReceived,
                 SEQNOReceived,
@@ -336,4 +329,4 @@ class Connection(object):
                 )
 
     def commandReceived(self, payload):
-        commandsList[payload.command - 1](payload)
+        Connection.commandsList[payload.command - 1](self, payload)

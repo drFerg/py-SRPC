@@ -4,20 +4,18 @@ from command import Command
 
 class ConnectPayload(payload.Payload):
     """docstring for ConnectPayload"""
-    def __init__(self, buffer = None, subport = 0, seqno = 0, fnum = 0, nfrags = 0, service = None):
-        super(ConnectPayload, self).__init__(buffer, subport, seqno, Command.CONNECT, fnum, nfrags)
+    def __init__(self, subport = 0, seqNo = 0, fnum = 0, nfrags = 0,
+                 serviceName = None, buffer = None):
+        super(ConnectPayload, self).__init__(subport, seqNo, Command.CONNECT, fnum, nfrags, buffer)
         if buffer is None:
-            self.service = service
+            self.serviceName = serviceName
         else:
             ser_len = len(buffer) - 12
             fmt = ">{}s".format(ser_len)
-            self.service = unpack(fmt, buffer[12:])[0]
+            self.serviceName = unpack(fmt, buffer[12:])[0]
 
-    def pack(self):
-        buff = super(ConnectPayload, self).pack()
-        buff = buff + self.service
-
-        return buff
+    def pack(self): #Pack payload and append serviceName
+        return super(ConnectPayload, self).pack() + self.serviceName
 
     def toString(self):
-        return "ConnectPayload:\n\tService: {}\n\t{}".format(self.service, super(ConnectPayload, self).toString())
+        return "ConnectPayload:\n\tService: {}\n\t{}".format(self.serviceName, super(ConnectPayload, self).toString())

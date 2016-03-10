@@ -3,8 +3,9 @@ from struct import calcsize, unpack, unpack_from, pack
 
 class DataPayload(payload.Payload):
     """docstring for DataPayload"""
-    def __init__(self, buffer=None, subport=0, seqno=0, command=0, fnum=0, nfrags=0, service=None, data_len=0, frag_len=0, data=None):
-        super(DataPayload, self).__init__(buffer, subport, seqno, command, fnum, nfrags)
+    def __init__(self, subport=0, seqNo=0, command=0, fnum=0, nfrags=0,
+                 service=None, data_len=0, frag_len=0, data=None, buffer=None):
+        super(DataPayload, self).__init__(subport, seqNo, command, fnum, nfrags, buffer)
         self.data_len = data_len
         self.frag_len = frag_len
         self.data = data
