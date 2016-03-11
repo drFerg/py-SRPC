@@ -28,8 +28,6 @@ class SRPC(object):
         self.cleanerThread = Timer(0.020, self.cleaner)
         self.cleanerThread.start()
 
-        print "hiiii"
-        print self.sock.getsockname()
 
     def getNewSubport(self):
         self.counter += 1
@@ -61,8 +59,8 @@ class SRPC(object):
             payload = Payload(buffer=data)
             endpoint = Endpoint(addr[0], addr[1], payload.subport)
             connection = self.connectionTable.get(endpoint)
-            print "Received {} from {}:{}".format(payload.command, addr[0], addr[1])
-            print "Found connection: {}".format(connection is not None)
+            # print "Received {} from {}:{}".format(payload.command, addr[0], addr[1])
+            # print "Found connection: {}".format(connection is not None)
 
             if connection is not None:
                 connection.commandReceived(payload)
@@ -103,6 +101,10 @@ if __name__ == '__main__':
     serv = srpc.offerService("handler")
     serv_t = Thread(target=servHandler, args=(serv,))
     conn = srpc.connect("localhost", 5000, "HWDB")
+    if conn is None:
+        SystemExit()
     print "Connected: {}".format(conn is not None)
-    print "SQL:subscribe TestQuery 127.0.0.1 {} {}".format("5001", serv.name)
-    print conn.call("SQL:subscribe TestQuery 127.0.0.1 {} {}".format("5001", serv.name))
+    print "SQL:create table b (i integer, r real)"
+    print conn.call("SQL:create table b (i integer, r real)")
+    print conn.call("SQL:insert into b values ('5', '5.0')")
+    print conn.call("BULK:72\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\ninsert into b values ('5', '5.0')\n")
