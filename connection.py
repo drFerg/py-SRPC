@@ -1,9 +1,6 @@
-import socket
+from threading import Condition
 from state import State
-from connectPayload import ConnectPayload
-from controlPayload import ControlPayload
-from dataPayload import DataPayload
-from threading import Condition, Lock
+from payload import ConnectPayload, ControlPayload, DataPayload
 from command import Command
 from srpcdefs import SRPCDef
 from query import Query
@@ -151,7 +148,7 @@ class Connection(object):
                                   command=Command.QUERY,
                                   fnum=fragment, nfrags=fragmentCount,
                                   data_len=qlen, data=query[index:])
-                                  
+
             self.send(payload)
             self.resetTicks()
             self.setState(State.QUERY_SENT)

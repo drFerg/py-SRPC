@@ -1,17 +1,16 @@
 import socket
-from endpoint import Endpoint
-from random import randint
-from connection import Connection
-from payload import Payload
-from service import Service
 from threading import Thread, Timer
-from srpcdefs import SRPCDef
+#SRPC imports
+from connection import Connection
 from command import Command
+from endpoint import Endpoint
+from payload import Payload
+from random import randint
+from service import Service
+from srpcdefs import SRPCDef
 
 class SRPC(object):
     """docstring for SRPC"""
-
-
 
     def __init__(self, port = 0):
         super(SRPC, self).__init__()
@@ -27,7 +26,6 @@ class SRPC(object):
         self.readerThread.start()
         self.cleanerThread = Timer(0.020, self.cleaner)
         self.cleanerThread.start()
-
 
     def getNewSubport(self):
         self.counter += 1
