@@ -41,6 +41,9 @@ class SRPC(object):
         else:
             return None
 
+    def disconnect(self, connection):
+        self.connectionTable.pop(connection.source).disconnect()
+
     def offerService(self, serviceName):
         service = Service(serviceName)
         self.serviceTable[serviceName] = service

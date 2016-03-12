@@ -50,7 +50,6 @@ class Connection(object):
         # sleep on state
 
     def send(self, payload):
-
         self.sock.sendto(payload.pack(),
                          (self.source.address, self.source.port))
         self.lastPayload = payload
@@ -196,9 +195,9 @@ class Connection(object):
             return False
 
 
-    def disconnect(self, payload):
-        self.send(Command.DISCONNECT)
-        self.waitForState((State.TIMEDOUT))
+    def disconnect(self):
+        self.sendCommand(Command.DISCONNECT)
+        self.waitForState((State.TIMEDOUT,))
 
     def SACKReceived(self, payload):
         if self.state == State.SEQNO_SENT:
