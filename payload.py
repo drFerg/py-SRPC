@@ -71,8 +71,8 @@ class DataPayload(Payload):
 
     def pack(self):
         """Prepend packed payload to packed network ordered lengths and data"""
-        return super(DataPayload, self).pack() +
-               pack(">HH", self.data_len, self.frag_len) + self.data
+        return (super(DataPayload, self).pack() +
+               pack(">HH", self.data_len, self.frag_len) + self.data)
 
     def __str__(self):
         return "DataPayload:\n\Data_len: {}\t Frag_len:{}\n\t{}".format(
