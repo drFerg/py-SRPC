@@ -1,9 +1,7 @@
 from threading import Condition
-from state import State
 from payload import ConnectPayload, ControlPayload, DataPayload
-from command import Command
-from srpcdefs import SRPCDef
-from query import Query
+from srpcDefs import SRPCDef, Command, State
+from srpcTypes import Query
 
 class Connection(object):
     """Manages state for a single RPC connection to another host"""
@@ -52,7 +50,7 @@ class Connection(object):
         # sleep on state
 
     def send(self, payload):
-        
+
         self.sock.sendto(payload.pack(),
                          (self.source.address, self.source.port))
         self.lastPayload = payload

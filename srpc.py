@@ -1,13 +1,11 @@
+from random import randint
 import socket
 from threading import Thread, Timer
 #SRPC imports
 from connection import Connection
-from command import Command
-from endpoint import Endpoint
 from payload import Payload
-from random import randint
-from service import Service
-from srpcdefs import SRPCDef
+from srpcTypes import Service, Endpoint
+from srpcDefs import SRPCDef, Command
 
 class SRPC(object):
     """docstring for SRPC"""

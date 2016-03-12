@@ -1,5 +1,5 @@
 from struct import pack, unpack
-from command import Command
+from srpcDefs import Command
 
 class Payload(object):
     """Basic payload header"""
