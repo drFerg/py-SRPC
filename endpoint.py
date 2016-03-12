@@ -1,15 +1,12 @@
 
 
 class Endpoint(object):
-    """docstring for EndPoint"""
+    """Used as a key for identifying a connection to the RPC system"""
     def __init__(self, address, port, subport):
         super(Endpoint, self).__init__()
         self.address = address
         self.port = port
         self.subport = subport
-
-    # def hashCode(self):
-    #     return address ^ port ^ subport
 
     def __str__(self):
         return str(self.__dict__)
@@ -19,6 +16,3 @@ class Endpoint(object):
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
-        # return (self.address == other.address and
-        #         self.port == self.port and
-        #         self.subport == self.subport)

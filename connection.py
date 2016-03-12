@@ -6,7 +6,7 @@ from srpcdefs import SRPCDef
 from query import Query
 
 class Connection(object):
-    """docstring for Connection"""
+    """Manages state for a single RPC connection to another host"""
     def __init__(self, sock, source, service):
         super(Connection, self).__init__()
         self.sock = sock
@@ -52,6 +52,7 @@ class Connection(object):
         # sleep on state
 
     def send(self, payload):
+        
         self.sock.sendto(payload.pack(),
                          (self.source.address, self.source.port))
         self.lastPayload = payload
