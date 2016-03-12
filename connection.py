@@ -47,7 +47,6 @@ class Connection(object):
         while (self.state not in stateSet):
             self.cond.wait()
         self.cond.release()
-        # sleep on state
 
     def send(self, payload):
         self.sock.sendto(payload.pack(),
@@ -82,7 +81,7 @@ class Connection(object):
             if self.ticksTilPing <= 0:
                 self.pingsTilPurge -= 1
                 if self.pingsTilPurge <= 0:
-                    self.state = State.TIMEDOUT
+                    self.setState(State.TIMEDOUT)
                 else:
                     self.ticksTilPing = SRPCDef.TICKS_BETWEEN_PINGS
                     self.ping()
@@ -273,7 +272,7 @@ class Connection(object):
         elif payload.seqNo == self.seqNo and self.state == State.FACK_SENT:
             if (payload.fragment - self.lastFrag) == 1: #Next fragment
                 self.data = self.data + payload.data
-            elif  payload.fragment == self.lastFrag: #Old fragment
+            elif payload.fragment == self.lastFrag: #Old fragment
                 self.retry()
                 return
             else:
@@ -314,20 +313,20 @@ class Connection(object):
     #Switch-table dictionary for received commands
     # (requires all functions to take payload)
     commandsList = (CONNECTReceived,
-                CACKReceived,
-                QUERYReceived,
-                QACKReceived,
-                RESPONSEReceived,
-                RACKReceived,
-                DISCONNECTReceived,
-                DACKReceived,
-                FRAGMENTReceived,
-                FACKReceived,
-                PINGReceived,
-                PACKReceived,
-                SEQNOReceived,
-                SACKReceived,
-                )
+                    CACKReceived,
+                    QUERYReceived,
+                    QACKReceived,
+                    RESPONSEReceived,
+                    RACKReceived,
+                    DISCONNECTReceived,
+                    DACKReceived,
+                    FRAGMENTReceived,
+                    FACKReceived,
+                    PINGReceived,
+                    PACKReceived,
+                    SEQNOReceived,
+                    SACKReceived,
+                    )
 
     def commandReceived(self, payload):
         Connection.commandsList[payload.command - 1](self, payload)

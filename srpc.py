@@ -1,6 +1,6 @@
 from random import randint
 import socket
-from threading import Thread, Timer
+from threading import Thread, Timer, Event
 #SRPC imports
 from connection import Connection
 from payload import Payload
@@ -20,10 +20,19 @@ class SRPC(object):
         self.serviceTable = {}
         self.seed = randint(0, 32767)
         self.counter = 1
-        self.readerThread = Thread(target=self.reader)
+        self.stop = Event()
+        self.readerThread = Thread(target=self.reader, args=(self.stop,))
         self.readerThread.start()
-        self.cleanerThread = Timer(0.020, self.cleaner)
+        self.cleanerThread = Timer(0.020, self.cleaner, args=(self.stop,))
         self.cleanerThread.start()
+
+    def close(self):
+        self.stop.set() #Alert threads using event
+        #Send empty packet to reader to break out of recv
+        self.sock.sendto("", self.sock.getsockname())
+        self.sock.close()
+        self.readerThread.join()
+        self.cleanerThread.join()
 
     def getNewSubport(self):
         self.counter += 1
@@ -42,7 +51,8 @@ class SRPC(object):
             return None
 
     def disconnect(self, connection):
-        self.connectionTable.pop(connection.source).disconnect()
+        connection.disconnect()
+        self.connectionTable.pop(connection.source)
 
     def offerService(self, serviceName):
         service = Service(serviceName)
@@ -52,9 +62,11 @@ class SRPC(object):
     def lookupService(self, serviceName):
         return self.serviceTable.get(serviceName)
 
-    def reader(self):
-        while True:
+    def reader(self, stop_event):
+        while not stop_event.is_set():
             data, addr = self.sock.recvfrom(SRPCDef.FRAGMENT_SIZE * 10)
+            if len(data) == 0:
+                break
             payload = Payload(buffer=data)
             endpoint = Endpoint(addr[0], addr[1], payload.subport)
             connection = self.connectionTable.get(endpoint)
@@ -73,14 +85,16 @@ class SRPC(object):
                     self.connectionTable[endpoint] = connection
                     connection.commandReceived(payload)
 
-    def cleaner(self):
+    def cleaner(self, stop_event):
+        if stop_event.is_set():
+            return
         for endpoint in self.connectionTable.keys():
             connection = self.connectionTable[endpoint]
             connection.checkStatus()
             if connection.isTimedOut():
                 self.connectionTable.pop(endpoint)
 
-        self.cleanerThread = Timer(0.020, self.cleaner)
+        self.cleanerThread = Timer(0.020, self.cleaner, args=(self.stop,))
         self.cleanerThread.start()
 
 
