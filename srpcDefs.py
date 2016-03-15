@@ -30,21 +30,3 @@ class Command:
     SACK = 14
     CMD_LOW = CONNECT
     CMD_HIGH = SACK
-
-class State:
-    """SRPC state codes"""
-    IDLE = 0
-    QACK_SENT = 1
-    RESPONSE_SENT = 2
-    CONNECT_SENT = 3
-    QUERY_SENT = 4
-    AWAITING_RESPONSE = 5
-    TIMEDOUT = 6
-    DISCONNECT_SENT = 7
-    FRAGMENT_SENT = 8
-    FACK_RECEIVED = 9
-    FACK_SENT = 10
-    SEQNO_SENT = 11
-
-    RETRY_SET = (CONNECT_SENT, QUERY_SENT, RESPONSE_SENT, DISCONNECT_SENT,
-                 FRAGMENT_SENT, SEQNO_SENT)
