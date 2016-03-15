@@ -310,7 +310,7 @@ class Connection(object):
 
     def DISCONNECTReceived(self, payload):
         if payload.seqNo == self.seqNo:
-            self.send(Command.DACK)
+            self.sendCommand(Command.DACK)
             self.setState(self.TIMEDOUT)
 
     def CACKReceived(self, payload):
@@ -319,7 +319,7 @@ class Connection(object):
 
     def CONNECTReceived(self, payload):
         self.seqNo = payload.seqNo
-        self.send(Command.CACK)
+        self.sendCommand(Command.CACK)
         self.setState(self.IDLE)
         self.resetTicks()
 
