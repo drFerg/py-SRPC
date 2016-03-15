@@ -179,10 +179,11 @@ class Connection(object):
         if self.state == self.QACK_SENT:
             query = query + '\0'
             qlen = len(query)
-            if qlen > MAX_LENGTH:
+            if qlen > SRPCDef.MAX_LENGTH:
                 return False
 
             fragmentCount = (qlen - 1) / SRPCDef.FRAGMENT_SIZE + 1
+            fragment = 1
             while fragment < fragmentCount:
                 index = SRPCDef.FRAGMENT_SIZE * (fragment - 1)
                 payload = DataPayload(subport=self.source.subport, seqNo=self.seqNo,
@@ -257,10 +258,10 @@ class Connection(object):
 
     def QUERYReceived(self, payload):
         payload = DataPayload(buffer=payload.buffer)
-        if (payload.seqNo - seqNo) == 1 and self.state in (self.IDLE,
+        if (payload.seqNo - self.seqNo) == 1 and self.state in (self.IDLE,
                                                          self.RESPONSE_SENT):
             self.seqNo = payload.seqNo
-            query = payload.getData
+            query = payload.data
         elif (payload.seqNo == self.seqNo and
               self.state in (self.QACK_SENT, self.RESPONSE_SENT)):
             self.retry()

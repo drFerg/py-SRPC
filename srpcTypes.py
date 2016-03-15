@@ -12,6 +12,15 @@ class Service(object):
     def query(self):
         return self.messageQueue.get(block=True)
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 class Query(object):
     """Provides storage for an incoming message and related connection"""
     def __init__(self, connection, query):

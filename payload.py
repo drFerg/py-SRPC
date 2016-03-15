@@ -44,8 +44,9 @@ class ConnectPayload(Payload):
         if buffer is None:
             self.serviceName = serviceName
         else:
-            ser_len = len(buffer) - 12
-            fmt = ">{}s".format(ser_len)
+            # Calculate string size (buffer - payload size - null end byte)
+            ser_len = len(buffer) - 13
+            fmt = ">{}sx".format(ser_len)
             self.serviceName = unpack(fmt, buffer[12:])[0]
 
     def pack(self): #Pack payload and append serviceName
