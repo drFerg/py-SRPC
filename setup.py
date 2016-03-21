@@ -7,5 +7,5 @@ setup(
    license='ISC',
    url='https://github.com/fergul/py-SRPC',
    packages=find_packages(),
-   scripts=['bin/hwdb.py'],
+   scripts=['bin/hwdb.py', 'bin/echoClient.py'],
 )
