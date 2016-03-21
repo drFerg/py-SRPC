@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 import getopt
 from threading import Thread
