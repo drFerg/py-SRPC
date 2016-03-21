@@ -9,6 +9,8 @@ Prerequisites: pip
 
 Just run:
 ```
+$ git clone https://github.com/fergul/py-SRPC.git
+$ cd py-SRPC
 $ python setup.py install
 ```
 
