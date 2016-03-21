@@ -34,7 +34,7 @@ conn.disconnect()
 srpc.close()
 ```
 
-For a bigger example check out [hwdb.py](https://github.com/fergul/py-SRPC/blob/master/hwdb.py "hwdb example"), which shows:
+For a bigger example check out [hwdb.py](https://github.com/fergul/py-SRPC/blob/master/bin/hwdb.py "hwdb example"), which shows:
  - connecting to a HWDB Cache instance
  - creating a table, inserting
  - registering an automaton and listening for responses
